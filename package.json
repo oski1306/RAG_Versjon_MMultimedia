@@ -1,0 +1,29 @@
+{
+  "name": "rag_project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@langchain/community": "^1.1.15",
+    "@langchain/core": "^1.1.24",
+    "@langchain/google-genai": "^2.1.18",
+    "cheerio": "^1.2.0",
+    "chromadb": "^3.3.0",
+    "dotenv": "^16.6.1",
+    "express": "^5.2.1",
+    "hnswlib-node": "^3.0.0",
+    "pdf-parse": "^2.4.5",
+    "pg": "^8.18.0"
+  }
+}

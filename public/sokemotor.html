@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inria+Sans:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap" rel="stylesheet">
+  <title>Klassisk dokumentsøk</title>
+</head>
+
+<body>
+
+<header class="top-header">
+  <a href="/index.html" class="logo" style="text-decoration: none;">
+      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" fill="white" class="bi bi-headset-vr logo-icon" viewBox="0 0 16 16">
+          <path d="M8 1.248c1.857 0 3.526.641 4.65 1.794a5 5 0 0 1 2.518 1.09C13.907 1.482 11.295 0 8 0 4.75 0 2.12 1.48.844 4.122a5 5 0 0 1 2.289-1.047C4.236 1.872 5.974 1.248 8 1.248"></path>
+          <path d="M12 12a4 4 0 0 1-2.786-1.13l-.002-.002a1.6 1.6 0 0 0-.276-.167A2.2 2.2 0 0 0 8 10.5c-.414 0-.729.103-.935.201a1.6 1.6 0 0 0-.277.167l-.002.002A4 4 0 1 1 4 4h8a4 4 0 0 1 0 8"></path>
+      </svg>
+    <div class="logo-text">RAG-SØKEMOTOR</div>
+  </a>
+</header>
+
+<main class="center-wrapper">
+  <div class="card search-card">
+
+    <h1>KLASSISK SØKEMOTOR</h1>
+
+    <div class="radio-group">
+      <label>
+        <input type="radio" name="searchMode" value="name" checked>
+        <span>SØK PÅ NAVN</span>
+      </label>
+
+      <label>
+        <input type="radio" name="searchMode" value="id">
+        <span>SØK PÅ ID</span>
+      </label>
+    </div>
+
+    <div class="search-row">
+      <input type="text" id="classicQuery" placeholder="Søk etter dokumenter">
+      <button id="classicBtn">SØK</button>
+    </div>
+
+    <div id="classicResults" class="results-panel hidden"></div>
+
+  </div>
+</main>
+
+<script type="module" src="./classic.js"></script>
+</body>
+</html>
