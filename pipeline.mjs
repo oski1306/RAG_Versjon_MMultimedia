@@ -92,194 +92,213 @@ if (typeof global.CanvasRenderingContext2D === 'undefined') {
   };
 }
 
-import "dotenv/config";
-import { pool } from "./database.mjs";
-import * as cheerio from "cheerio";
-import { createRequire } from "module";
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
-import fs from "fs";
-import path from "path";
-import { randomUUID } from "crypto";
 
-const require = createRequire(import.meta.url);
-let pdfParse;
-try {
-  const pdfParseModule = require("pdf-parse");
-  pdfParse = pdfParseModule.default || pdfParseModule;
-} catch (err) {
-  console.warn("pdf-parse not available, skipping PDF support");
-  pdfParse = null;
-}
+(async () => {
+  await import("dotenv/config");
+  const { pool } = await import("./database.mjs");
+  const cheerio = await import("cheerio");
+  const { GoogleGenerativeAIEmbeddings } = await import("@langchain/google-genai");
+  const fs = await import("fs");
+  const path = await import("path");
+  const { randomUUID } = await import("crypto");
 
-function chunkText(text, chunkSize = 500, overlap = 100) {
-  const chunks = [];
-  let start = 0;
-
-  while (start < text.length) {
-    chunks.push(text.slice(start, start + chunkSize));
-    start += chunkSize - overlap;
-  }
-
-  return chunks;
-}
-
-function extractTextFromHTML(buffer) {
-  const html = buffer.toString("utf8");
-  const $ = cheerio.load(html);
-
-  $("script, style, noscript").remove();
-  return $("body").text().trim();
-}
-
-async function extractTextFromPDF(buffer) {
-  if (!pdfParse) {
-    console.log("⚠️ PDF parsing not available, skipping");
-    return null;
-  }
+  let pdfParse = null;
   try {
-    const parsed = await pdfParse(buffer);
-    return parsed.text.trim();
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+    pdfParse = async (buffer) => {
+      const uint8Array = new Uint8Array(buffer);
+      const pdf = await pdfjsLib.getDocument({ data: uint8Array }).promise;
+      let text = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map((item) => item.str).join(" ") + "\n";
+      }
+      return { text: text.trim() };
+    };
   } catch (err) {
-    console.log("PDF parse error:", err.message);
-    return null;
   }
-}
 
-const embeddings = new GoogleGenerativeAIEmbeddings({
-  model: "models/gemini-embedding-001",
-});
+  function chunkText(text, chunkSize = 500, overlap = 100) {
+    const chunks = [];
+    let start = 0;
 
-function toPgVector(vector) {
-  return `[${vector.join(",")}]`;
-}
+    while (start < text.length) {
+      chunks.push(text.slice(start, start + chunkSize));
+      start += chunkSize - overlap;
+    }
 
-async function ingestEmbeddings() {
-  console.log("📥 Starting embedding ingestion...");
+    return chunks;
+  }
 
-  const res = await pool.query(`
-    SELECT 
-      dc.document_id,
-      dc.chunk_index,
-      dc.content,
-      dc.filename
-    FROM document_chunks dc
-    LEFT JOIN document_embeddings de
-      ON de.document_id = dc.document_id
-      AND de.chunk_index = dc.chunk_index
-    WHERE de.id IS NULL
-    ORDER BY dc.document_id, dc.chunk_index;
-  `);
+  function extractTextFromHTML(buffer) {
+    const html = buffer.toString("utf8");
+    const $ = cheerio.load(html);
 
-  console.log(`🧠 Chunks needing embeddings: ${res.rows.length}`);
+    $("script, style, noscript").remove();
+    return $("body").text().trim();
+  }
 
-  for (const row of res.rows) {
+  async function extractTextFromPDF(buffer) {
+    if (!pdfParse) {
+      console.log("⚠️ PDF parsing not available, skipping");
+      return null;
+    }
     try {
-      console.log(`Embedding ${row.document_id}#${row.chunk_index}`);
-
-      const vector = await embeddings.embedQuery(row.content);
-      const pgVector = toPgVector(vector);
-
-      await pool.query(
-        `INSERT INTO document_embeddings
-         (id, document_id, chunk_index, embedding, content, filename)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          randomUUID(),
-          row.document_id,
-          row.chunk_index,
-          pgVector,
-          row.content,
-          row.filename,
-        ]
-      );
+      const parsed = await pdfParse(buffer);
+      return parsed && parsed.text ? parsed.text.trim() : null;
     } catch (err) {
-      console.error(`❌ Failed ${row.document_id}#${row.chunk_index}`);
-      console.error(err.message);
+      console.log("PDF parse error:", err.message);
+      return null;
     }
   }
 
-  console.log("✅ Embedding ingestion finished");
-}
+  const embeddings = new GoogleGenerativeAIEmbeddings({
+    model: "models/gemini-embedding-001",
+  });
 
-async function runPipeline() {
-  console.log("📁 Ingesting local documents from ./documents");
-  const root = path.resolve("documents");
-  const files = [];
-
-  async function walk(dir) {
-    const entries = await fs.promises.readdir(dir, { withFileTypes: true });
-    for (const entry of entries) {
-      const full = path.join(dir, entry.name);
-      if (entry.isDirectory()) {
-        await walk(full);
-      } else if (entry.isFile() && /\.(html?|txt|pdf)$/i.test(entry.name)) {
-        files.push(full);
-      }
-    }
+  function toPgVector(vector) {
+    return `[${vector.join(",")}]`;
   }
 
-  await walk(root);
-  console.log(`📄 Found ${files.length} files`);
+  async function ingestEmbeddings() {
+    console.log("📥 Starting embedding ingestion...");
 
-  try {
-    await pool.query(`DELETE FROM document_embeddings`);
-    await pool.query(`DELETE FROM document_chunks`);
-    await pool.query(`DELETE FROM documents`);
-  } catch (err) {
-    console.warn("Warning clearing tables:", err.message);
-  }
-  console.log("🗑️ Cleared existing documents from database");
+    const res = await pool.query(`
+      SELECT 
+        dc.document_id,
+        dc.chunk_index,
+        dc.content,
+        dc.filename
+      FROM document_chunks dc
+      LEFT JOIN document_embeddings de
+        ON de.document_id = dc.document_id
+        AND de.chunk_index = dc.chunk_index
+      WHERE de.id IS NULL
+      ORDER BY dc.document_id, dc.chunk_index;
+    `);
 
-  for (const file of files) {
-    try {
-      const rel = path.relative(root, file).replace(/\\/g, "/");
-      const position = rel.split("/")[0];
-      let text = null;
+    console.log(`🧠 Chunks needing embeddings: ${res.rows.length}`);
 
-      console.log(`⬇️ Processing ${rel}`);
+    for (const row of res.rows) {
+      try {
+        console.log(`Embedding ${row.document_id}#${row.chunk_index}`);
 
-      if (file.toLowerCase().endsWith(".pdf")) {
-        const buffer = await fs.promises.readFile(file);
-        text = await extractTextFromPDF(buffer);
-      } else {
-        const html = await fs.promises.readFile(file, "utf8");
-        text = extractTextFromHTML(Buffer.from(html, "utf8"));
-      }
+        const vector = await embeddings.embedQuery(row.content);
+        const pgVector = toPgVector(vector);
 
-      if (!text || text.length < 200) {
-        console.log(`⚠️ Skipping unusable file ${rel}`);
-        continue;
-      }
-
-      const insertRes = await pool.query(
-        `INSERT INTO documents (id, position)
-         VALUES ($1, $2)
-         RETURNING id`,
-        [randomUUID(), position]
-      );
-      const docId = insertRes.rows[0].id;
-      const chunks = chunkText(text);
-      for (let i = 0; i < chunks.length; i++) {
         await pool.query(
-          `INSERT INTO document_chunks
-           (document_id, chunk_index, content, filename)
-           VALUES ($1, $2, $3, $4)`,
-          [docId, i, chunks[i], rel]
+          `INSERT INTO document_embeddings
+           (id, document_id, chunk_index, embedding, content, filename)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            randomUUID(),
+            row.document_id,
+            row.chunk_index,
+            pgVector,
+            row.content,
+            row.filename,
+          ]
         );
+      } catch (err) {
+        console.error(`❌ Failed ${row.document_id}#${row.chunk_index}`);
+        console.error(err.message);
       }
-
-      console.log(`✅ Chunked ${rel} (${chunks.length} chunks)`);
-    } catch (err) {
-      console.error(`❌ Error processing ${file}:`, err.message);
     }
+
+    console.log("✅ Embedding ingestion finished");
   }
 
-  console.log("✂️ Chunking completed");
-  await ingestEmbeddings();
-  await pool.end();
-}
+  async function runPipeline() {
+    console.log("📁 Ingesting local documents from ./documents");
+    const root = path.resolve("documents");
+    const files = [];
 
-runPipeline().catch(err => {
-  console.error("❌ Pipeline failed:", err);
-  process.exit(1);
-});
+    async function walk(dir) {
+      const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          await walk(full);
+        } else if (entry.isFile() && /\.(html?|txt|pdf)$/i.test(entry.name)) {
+          files.push(full);
+        }
+      }
+    }
+
+    await walk(root);
+    console.log(`📄 Found ${files.length} files`);
+
+    const existingDocs = await pool.query(`
+      SELECT DISTINCT filename FROM document_chunks
+    `);
+    const processedFilenames = new Set(
+      existingDocs.rows.map(row => row.filename)
+    );
+
+    console.log(`📚 Already processed: ${processedFilenames.size} documents`);
+
+    let newCount = 0;
+    let skippedCount = 0;
+
+    for (const file of files) {
+      try {
+        const rel = path.relative(root, file).replace(/\\/g, "/");
+        const position = rel.split("/")[0];
+        let text = null;
+
+        if (processedFilenames.has(rel)) {
+          console.log(`⏭️  Already processed ${rel}`);
+          skippedCount++;
+          continue;
+        }
+
+        console.log(`⬇️ Processing ${rel}`);
+
+        if (file.toLowerCase().endsWith(".pdf")) {
+          const buffer = await fs.promises.readFile(file);
+          text = await extractTextFromPDF(buffer);
+        } else {
+          const html = await fs.promises.readFile(file, "utf8");
+          text = await extractTextFromHTML(Buffer.from(html, "utf8"));
+        }
+
+        if (!text || text.length < 200) {
+          console.log(`⚠️ Skipping unusable file ${rel}`);
+          continue;
+        }
+
+        const insertRes = await pool.query(
+          `INSERT INTO documents (id, position)
+           VALUES ($1, $2)
+           RETURNING id`,
+          [randomUUID(), position]
+        );
+        const docId = insertRes.rows[0].id;
+        const chunks = chunkText(text);
+        for (let i = 0; i < chunks.length; i++) {
+          await pool.query(
+            `INSERT INTO document_chunks
+             (document_id, chunk_index, content, filename)
+             VALUES ($1, $2, $3, $4)`,
+            [docId, i, chunks[i], rel]
+          );
+        }
+
+        console.log(`✅ Chunked ${rel} (${chunks.length} chunks)`);
+        newCount++;
+      } catch (err) {
+        console.error(`❌ Error processing ${file}:`, err.message);
+      }
+    }
+
+    console.log(`✂️ Chunking completed (${newCount} new, ${skippedCount} already processed)`);
+    await ingestEmbeddings();
+    await pool.end();
+  }
+
+  runPipeline().catch(err => {
+    console.error("❌ Pipeline failed:", err);
+    process.exit(1);
+  });
+})();

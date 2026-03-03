@@ -24,6 +24,7 @@
     "express": "^5.2.1",
     "hnswlib-node": "^3.0.0",
     "pdf-parse": "^2.4.5",
+    "pdfjs-dist": "^5.5.207",
     "pg": "^8.18.0"
   }
 }

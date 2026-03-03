@@ -61,12 +61,14 @@ REGLER (OBLIGATORISK):
 - Beskriv kun dokumentene i DOCUMENTS
 - Svar kun på norsk
 - Du MÅ beskrive EXACTLY {doc_count} dokumenter
+- For hvert dokument skriv NØYAKTIG to setninger: først en kort beskrivelse, så en setning som forklarer hvorfor dokumentet er relevant for spørsmålet.
 - Hvis ingen av dokumentene dekker spørsmålet, si tydelig at du ikke finner noe relevant og ikke dikt opp noe
 
 FORMAT:
 
 [1] dokumentnavn  
-Dette dokumentet beskriver ...
+Kort beskrivelse av innholdet.
+Forklaring på hvorfor det er relevant i sammenheng med spørsmålet.
 
 DOCUMENTS:
 {doc_list}
@@ -153,7 +155,7 @@ app.post("/ask", async (req, res) => {
       return noDocsResponse(res);
     }
 
-    const MAX_DISTANCE = 0.80;
+    const MAX_DISTANCE = 0.8;
 
     let relevantRows = results.rows.filter(row => row.distance < MAX_DISTANCE);
 
