@@ -11,6 +11,10 @@
     display: none;
   }
 
+  .help-popup.hidden {
+    display: none;
+  }
+
   body {
     height: 100vh;
     overflow: hidden;
@@ -75,9 +79,11 @@
     justify-content: center;
     align-items: center;
     width: 100%;
+    padding: 20px;
   }
   
   .card {
+    position: relative;
     width: 500px;
     padding: 55px 45px;
 
@@ -174,16 +180,64 @@
   .option:active .icon-box {
     transform: translateY(0) scale(0.98);
   }
-  
-  @media (max-width: 600px) {
-    .card {
-      width: 90%;
-    }
-  
-    .options {
-      flex-direction: column;
-    }
+
+@media (max-width: 600px) {
+
+  .card {
+    width: 92%;
+    padding: 28px 22px;
   }
+
+  .search-card {
+    width: 92%;
+    min-height: auto;
+  }
+
+  .card h1 {
+    font-size: 20px;
+    margin-bottom: 22px;
+  }
+
+
+  .radio-group span {
+    font-size: 12px;
+  }
+
+  .search-row {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .search-row input {
+    width: 100%;
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .search-row button {
+    width: 80px;
+    height: 30px;
+    font-size: 12px;
+  }
+
+  .results-panel {
+    font-size: 12px;
+    max-height: 220px;
+  }
+
+  .doc-info a {
+    max-width: 200px;
+  }
+
+  .help-icon {
+    top: 10px;
+    right: 10px;
+  }
+
+  .rag-card{
+    padding: 28px 20px;
+  }
+}
 
 .search-card {
     width: 520px;
@@ -450,7 +504,8 @@
     display: flex;
     flex-direction: column;
     position: relative;
-    width: 520px;
+    width: 100%;
+    max-width: 520px;
     padding: 40px 40px 35px;
     min-height: 320px;
   }
@@ -858,3 +913,81 @@
   .dropdown-option::-webkit-scrollbar-thumb:hover {
     background: rgba(47, 128, 237, 0.6);
   }
+
+.help-icon{
+  position:absolute;
+  top:14px;
+  right:16px;
+
+  width:22px;
+  height:22px;
+
+  border-radius:50%;
+  border:2px solid white;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-size:12px;
+  font-weight:700;
+
+  cursor:pointer;
+
+  transition:transform 0.15s ease,
+             background 0.15s ease;
+}
+
+.help-icon:hover{
+  transform:scale(1.1);
+  background:rgba(255,255,255,0.2);
+}
+
+.help-popup{
+  position:absolute;
+  inset:0;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  background:rgba(0,0,0,0.35);
+  border-radius:18px;
+  backdrop-filter: blur(3px);
+
+  z-index: 20;
+}
+
+.help-content{
+  background:white;
+  color:#6328CA;
+
+  padding:22px 26px;
+  border-radius:12px;
+
+  width:300px;
+  text-align:left;
+
+  box-shadow:0 12px 30px rgba(0,0,0,0.25);
+}
+
+.help-content h3{
+  margin-bottom:8px;
+}
+
+.help-content ul{
+  margin-top:8px;
+  margin-left:16px;
+}
+
+.help-content button{
+  margin-top:14px;
+
+  border:none;
+  border-radius:8px;
+  padding:6px 12px;
+
+  background:#6328CA;
+  color:white;
+  cursor:pointer;
+}

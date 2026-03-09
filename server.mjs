@@ -155,7 +155,7 @@ app.post("/ask", async (req, res) => {
       return noDocsResponse(res);
     }
 
-    const MAX_DISTANCE = 0.8;
+    const MAX_DISTANCE = 0.81;
 
     let relevantRows = results.rows.filter(row => row.distance < MAX_DISTANCE);
 

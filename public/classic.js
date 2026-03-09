@@ -78,3 +78,15 @@ function getSelectedMode() {
         runClassicSearch();
       }
     });
+
+    const helpIcon = document.getElementById("helpIcon");
+    const helpPopup = document.getElementById("helpPopup");
+    const closeHelp = document.getElementById("closeHelp");
+
+    helpIcon.addEventListener("click", () => {
+      helpPopup.classList.remove("hidden");
+    });
+
+    closeHelp.addEventListener("click", () => {
+      helpPopup.classList.add("hidden");
+    });
